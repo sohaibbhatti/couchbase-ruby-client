@@ -120,6 +120,27 @@ module Couchbase
       async? ? nil : docmap
     end
 
+    def dev_design_docs
+      req = make_http_request("/pools/default/buckets/#{bucket}/ddocs",
+                              :type => :management, :extended => true)
+      docmap = {}
+      req.on_body do |body|
+        res = MultiJson.load(body.value)
+        res["rows"].each do |obj|
+          if obj['doc']
+            obj['doc']['value'] = obj['doc'].delete('json')
+          end
+          doc = DesignDoc.wrap(self, obj)
+          key = doc.id.sub(/^_design\//, '')
+          next unless self.environment == :production && key =~ /dev_/
+          docmap[key] = doc
+        end
+        yield(docmap) if block_given?
+      end
+      req.continue
+      async? ? nil : docmap
+    end
+
     # Update or create design doc with supplied views
     #
     # @since 1.2.0
