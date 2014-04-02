@@ -201,7 +201,12 @@ module Couchbase
     #
     # @return [true, false]
     def delete_design_doc(id, rev = nil)
-      ddoc = design_docs[id.sub(/^_design\//, '')]
+      ddoc_id = id.sub(/^_design\//, '')
+      ddoc = if ddoc_id.start_with? 'dev_'
+               dev_design_docs[id]
+             else
+               design_docs[id]
+             end
       unless ddoc
         yield nil if block_given?
         return nil
